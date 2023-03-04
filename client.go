@@ -11,6 +11,21 @@ type Client struct {
 	Client *http.Client
 	// API key used for authentication.
 	APIKey string
+	// MaxRetries is the maximum number of times to retry a request.
+	MaxRetries int
+}
+
+func (c *Client) Do(req *http.Request) (resp *http.Response, err error) {
+	if c.MaxRetries <= 0 {
+		c.MaxRetries = 0
+	}
+	for i := 0; i <= c.MaxRetries; i++ {
+		resp, err = c.Client.Do(req)
+		if err == nil {
+			break
+		}
+	}
+	return resp, err
 }
 
 // NewClient returns a new OpenAI API C

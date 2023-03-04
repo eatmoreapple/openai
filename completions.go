@@ -80,7 +80,7 @@ func (c *Client) Completion(ctx context.Context, req CompletionRequest) (*Comple
 	}
 	httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
 	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.Client.Do(httpReq)
+	resp, err := c.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
