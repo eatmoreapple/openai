@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 )
 
@@ -58,6 +57,14 @@ type CompletionResponse struct {
 	} `json:"usage"`
 }
 
+// MessageContent returns the content of the first message in the response.
+func (c CompletionResponse) MessageContent() string {
+	if len(c.Choices) == 0 {
+		return ""
+	}
+	return c.Choices[0].Message.Content
+}
+
 // completionURL is the URL for the OpenAI API's completion endpoint.
 const completionURL = "https://api.openai.com/v1/chat/completions"
 
@@ -73,21 +80,23 @@ func (c *Client) Completion(ctx context.Context, req CompletionRequest) (*Comple
 	}
 	httpReq.Header.Set("Authorization", "Bearer "+c.APIKey)
 	httpReq.Header.Set("Content-Type", "application/json")
-	resp, err := c.client.Do(httpReq)
+	resp, err := c.Client.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
-	buf.Reset()
-	if _, err := buf.ReadFrom(resp.Body); err != nil {
-		return nil, err
-	}
-	if resp.StatusCode == http.StatusTooManyRequests {
-		// TODO: parse the response body and return a more specific error
-		return nil, errors.New(buf.String())
+
+	// Check for errors
+	// https://beta.openai.com/docs/api-reference/completions/create
+	if resp.StatusCode != http.StatusOK {
+		var respErr ErrorResponse
+		if err = json.NewDecoder(resp.Body).Decode(&respErr); err != nil {
+			return nil, err
+		}
+		return nil, respErr
 	}
 	var completionResponse CompletionResponse
-	if err := json.NewDecoder(buf).Decode(&completionResponse); err != nil {
+	if err = json.NewDecoder(resp.Body).Decode(&completionResponse); err != nil {
 		return nil, err
 	}
 	return &completionResponse, nil
@@ -103,12 +112,10 @@ func (c *Client) CompletionWithHistory(ctx context.Context, prompt string, histo
 	req := CompletionRequest{
 		Model: CompletionModelGPT35Turbo,
 		Messages: append(
-			CompletionMessages{
-				{
-					Role:    RoleUser,
-					Content: prompt,
-				},
-			},
+			CompletionMessages{{
+				Role:    RoleUser,
+				Content: prompt,
+			}},
 			histories...,
 		),
 	}
