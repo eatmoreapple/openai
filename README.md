@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	client := openai.DefaultClient("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")
+	client := openai.DefaultClient("your api key")
 	resp, err := client.CompletionWithPrompt(context.Background(), "hello")
 	if err != nil {
 		log.Println(err)
