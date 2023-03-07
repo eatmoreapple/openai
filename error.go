@@ -2,6 +2,7 @@ package openai
 
 import (
 	"errors"
+	"strings"
 )
 
 // ErrorResponse define a error response from the OpenAI API.
@@ -40,6 +41,15 @@ func IsInsufficientQuota(err error) bool {
 	var respErr ErrorResponse
 	if ok := errors.As(err, &respErr); ok {
 		return respErr.Err.Type == insufficientQuota
+	}
+	return false
+}
+
+// IsRateLimited returns true if the error is a rate limit error.
+func IsRateLimited(err error) bool {
+	var respErr ErrorResponse
+	if ok := errors.As(err, &respErr); ok {
+		return respErr.Err.Type == "requests" && strings.Contains(respErr.Err.Message, "Rate limit reached")
 	}
 	return false
 }
