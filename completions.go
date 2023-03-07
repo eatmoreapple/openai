@@ -93,6 +93,7 @@ func (c *Client) Completion(ctx context.Context, req CompletionRequest) (*Comple
 		if err = json.NewDecoder(resp.Body).Decode(&respErr); err != nil {
 			return nil, err
 		}
+		respErr.StatusCode = resp.StatusCode
 		return nil, respErr
 	}
 	var completionResponse CompletionResponse
